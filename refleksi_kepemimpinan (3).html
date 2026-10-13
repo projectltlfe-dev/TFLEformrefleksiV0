@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Ruang Refleksi</title>
+
+  <!-- Tipografi: Cormorant Garamond (reflektif) + Manrope (bersih & tenang) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- html2canvas untuk menyimpan kartu sebagai PNG -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    /* ==========================================================
+       DASAR & TOKEN WARNA
+       ========================================================== */
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    :root {
+      --bg-top: #FDFCFA;
+      --bg-mid: #F7F6F2;
+      --bg-bottom: #EEF3F1;
+      --ink: #2D3337;
+      --ink-soft: #555D62;
+      --muted: #8B9296;
+      --faint: #B3B8BB;
+      --line: rgba(45, 51, 55, .09);
+      --sand: #B08E62;
+      --sand-deep: #8C6D45;
+      --sand-soft: #EFE4D4;
+      --sage: #6F8C7E;
+      --sage-deep: #4C6A5C;
+      --sage-soft: #E2EBE6;
+      --surface: rgba(255, 255, 255, .72);
+      --shadow: 0 1px 2px rgba(45, 51, 55, .04), 0 14px 44px -14px rgba(90, 75, 50, .16);
+      --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+      --sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+      --orb: clamp(132px, 38vmin, 250px);
+    }
+
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: var(--sans);
+      color: var(--ink);
+      line-height: 1.6;
+      background: var(--bg-mid);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    body.is-locked { overflow: hidden; }
+    ::selection { background: var(--sand-soft); color: var(--ink); }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    button { font-family: inherit; }
+    :focus-visible { outline: 2px solid rgba(111, 140, 126, .55); outline-offset: 3px; }
+
+    /* ==========================================================
+       LATAR: gradasi, cahaya lembut, partikel melayang
+       ========================================================== */
+    .ambient {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bottom) 100%);
+    }
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(70px); opacity: .7;
+      animation: drift 28s ease-in-out infinite alternate;
+    }
+    .blob--a { width: 520px; height: 520px; top: -200px; left: 50%; margin-left: -260px; background: #F6E7D6; }
+    .blob--b { width: 460px; height: 460px; bottom: -170px; right: -150px; background: #DCE9E4; animation-duration: 34s; }
+    .blob--c { width: 380px; height: 380px; top: 42%; left: -170px; background: #ECE8F1; opacity: .5; animation-duration: 40s; }
+    @keyframes drift {
+      0%   { transform: translate3d(0, 0, 0) scale(1); }
+      100% { transform: translate3d(30px, 40px, 0) scale(1.08); }
+    }
+    .motes { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* Garis progres tipis */
+    .progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 40; pointer-events: none; opacity: 0; transition: opacity .8s; }
+    .progress.is-visible { opacity: 1; }
+    .progress span {
+      display: block; height: 100%; width: 100%;
+      transform-origin: left; transform: scaleX(0);
+      background: linear-gradient(90deg, rgba(176, 142, 98, .5), rgba(111, 140, 126, .75));
+      transition: transform .25s linear;
+    }
+
+    /* ==========================================================
+       TOP BAR
+       ========================================================== */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: calc(12px + env(safe-area-inset-top)) 16px 22px;
+      background: linear-gradient(180deg, rgba(251, 249, 245, .96) 0%, rgba(251, 249, 245, .85) 55%, rgba(251, 249, 245, 0) 100%);
+      pointer-events: none;
+      opacity: 0; transform: translateY(-8px);
+      transition: opacity .9s var(--ease), transform .9s var(--ease);
+    }
+    .topbar.is-visible { opacity: 1; transform: none; }
+    .topbar.is-visible > * { pointer-events: auto; }
+    .topbar.is-quiet { opacity: .45; }
+
+    .pill, .sound-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      height: 34px; padding: 0 14px; border-radius: 999px;
+      background: rgba(255, 255, 255, .72);
+      border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      font-size: 12px; color: var(--ink-soft); letter-spacing: .02em;
+    }
+    .pill__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sage); animation: softpulse 3s ease-in-out infinite; }
+    @keyframes softpulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+    .sound-btn { cursor: pointer; font-weight: 500; transition: color .4s, border-color .4s, background .4s; }
+    .sound-btn:hover { background: #fff; }
+    .sound-btn.is-on { color: var(--sand-deep); border-color: rgba(176, 142, 98, .35); }
+    .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+    .eq i { display: block; width: 2px; height: 3px; border-radius: 1px; background: currentColor; }
+    .sound-btn.is-on .eq i { animation: eq 1.6s ease-in-out infinite; }
+    .sound-btn.is-on .eq i:nth-child(2) { animation-delay: .3s; }
+    .sound-btn.is-on .eq i:nth-child(3) { animation-delay: .6s; }
+    @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 12px; } }
+
+    /* ==========================================================
+       ELEMEN UMUM
+       ========================================================== */
+    .eyebrow {
+      display: inline-block;
+      font: 600 11px/1 var(--sans);
+      letter-spacing: .24em; text-transform: uppercase;
+      color: var(--sand);
+    }
+
+    .btn {
+      position: relative;
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      min-height: 52px; padding: 0 32px; border-radius: 999px;
+      font: 600 14px/1 var(--sans); letter-spacing: .03em;
+      border: 1px solid transparent; cursor: pointer;
+      transition: transform .35s var(--ease), box-shadow .35s, background .35s, opacity .5s, color .35s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .btn:active { transform: scale(.98); }
+    .btn--primary {
+      color: #FBFAF6;
+      background: linear-gradient(180deg, #6A8879 0%, #4F6D5F 100%);
+      box-shadow: 0 12px 28px -14px rgba(76, 106, 92, .7), inset 0 1px 0 rgba(255, 255, 255, .15);
+    }
+    .btn--primary:hover { transform: translateY(-1px); box-shadow: 0 16px 32px -14px rgba(76, 106, 92, .75), inset 0 1px 0 rgba(255, 255, 255, .15); }
+    .btn--ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); min-height: 46px; font-weight: 500; }
+    .btn--ghost:hover { background: rgba(255, 255, 255, .7); }
+    .btn--block { width: 100%; }
+
+    /* Lingkar cahaya yang "bernapas" di sekitar tombol */
+    .btn--halo::before, .btn--halo::after {
+      content: ""; position: absolute; inset: -1px; border-radius: inherit;
+      border: 1px solid rgba(111, 140, 126, .45);
+      animation: halo 3.6s ease-out infinite; pointer-events: none;
+    }
+    .btn--halo::after { animation-delay: 1.8s; }
+    @keyframes halo { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(1.22, 1.5); opacity: 0; } }
+
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, .35); border-top-color: #fff;
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .scroll-hint {
+      padding: 8px 12px; background: none; border: 0; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      font: 500 11px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+      opacity: 0; transition: opacity 1.6s var(--ease);
+    }
+    .scroll-hint.is-shown { opacity: 1; }
+    .scroll-hint__line {
+      width: 1px; height: 44px; transform-origin: top;
+      background: linear-gradient(var(--sand), transparent);
+      animation: flow 2.6s ease-in-out infinite;
+    }
+    @keyframes flow { 0% { transform: scaleY(0); opacity: 0; } 40% { opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+
+    /* Muncul perlahan saat digulir (dengan jeda bertahap untuk anak elemen) */
+    .reveal { opacity: 0; transform: translateY(26px); transition: opacity 1.3s var(--ease), transform 1.3s var(--ease); }
+    .reveal.is-in { opacity: 1; transform: none; }
+    .stagger > * { opacity: 0; transform: translateY(14px); transition: opacity 1.2s var(--ease), transform 1.2s var(--ease); }
+    .stagger.is-in > * { opacity: 1; transform: none; }
+    .stagger.is-in > *:nth-child(2) { transition-delay: .18s; }
+    .stagger.is-in > *:nth-child(3) { transition-delay: .36s; }
+    .stagger.is-in > *:nth-child(4) { transition-delay: .54s; }
+    .stagger.is-in > *:nth-child(5) { transition-delay: .72s; }
+    .stagger.is-in > *:nth-child(6) { transition-delay: .9s; }
+
+    /* ==========================================================
+       STRUKTUR HALAMAN
+       ========================================================== */
+    .app {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 720px; margin: 0 auto;
+      padding: 0 16px 24px;
+    }
+    @media (min-width: 640px) { .app { padding: 0 32px 40px; } }
+    .page.is-entering { animation: pageIn 1.4s var(--ease) both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+    /* ---------- HALAMAN 1A: Napas ---------- */
+    .breath-screen {
+      position: relative;
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 48px 0 110px;
+    }
+    .breath-screen .eyebrow { animation: fadeIn 2s var(--ease) .2s both; }
+    .breath {
+      position: relative; flex-shrink: 0;
+      width: calc(var(--orb) * 1.42); height: calc(var(--orb) * 1.42);
+      margin: 26px auto 18px;
+      display: grid; place-items: center;
+      animation: fadeIn 2.4s var(--ease) .4s both;
+    }
+    .breath > * { grid-area: 1 / 1; }
+    .breath__ripple {
+      width: var(--orb); height: var(--orb); border-radius: 50%;
+      border: 1px solid rgba(176, 142, 98, .35);
+      animation: ripple 9s cubic-bezier(.2, .6, .35, 1) infinite;
+      opacity: 0;
+    }
+    .breath__ripple:nth-child(2) { animation-delay: 3s; border-color: rgba(111, 140, 126, .3); }
+    .breath__ripple:nth-child(3) { animation-delay: 6s; }
+    @keyframes ripple { 0% { transform: scale(.92); opacity: 0; } 12% { opacity: .9; } 100% { transform: scale(1.42); opacity: 0; } }
+    .breath__ring {
+      width: calc(var(--orb) * 1.16); height: calc(var(--orb) * 1.16); border-radius: 50%;
+      border: 1px solid rgba(176, 142, 98, .22);
+      animation: ring 8s ease-in-out infinite;
+    }
+    .breath__core {
+      position: relative;
+      width: var(--orb); height: var(--orb); border-radius: 50%;
+      display: grid; place-items: center;
+      background: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #F7EDE0 56%, #EBDCC6 100%);
+      box-shadow: 0 26px 60px -22px rgba(176, 142, 98, .5), inset 0 0 0 1px rgba(255, 255, 255, .75);
+      animation: breathe 4s ease-in-out infinite alternate;
+    }
+    .breath__core::after {
+      content: ""; position: absolute; inset: 14%; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 70%);
+      animation: glow 4s ease-in-out infinite alternate;
+    }
+    .breath__core span {
+      position: relative; z-index: 1;
+      font: italic 500 calc(var(--orb) * .115)/1.2 var(--serif); color: var(--sand-deep);
+      transition: opacity .7s;
+    }
+    .breath__core span.is-fading { opacity: 0; }
+    @keyframes breathe { from { transform: scale(.84); } to { transform: scale(1.08); } }
+    @keyframes glow { from { opacity: .35; } to { opacity: 1; } }
+    @keyframes ring { 0%, 100% { transform: scale(.92); opacity: .4; } 50% { transform: scale(1.04); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .breath-guide {
+      margin: 6px auto 0; max-width: 300px;
+      font-size: 13.5px; font-weight: 300; line-height: 1.7; color: var(--muted);
+      animation: fadeIn 2s var(--ease) 1.4s both;
+    }
+    .breath-screen .scroll-hint { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); }
+
+    /* ---------- HALAMAN 1B: Sambutan ---------- */
+    .welcome {
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 56px 0 48px;
+    }
+    .sunrise { display: flex; flex-direction: column; align-items: center; margin-bottom: 26px; }
+    .sunrise__box { position: relative; width: 46px; height: 23px; overflow: hidden; }
+    .sunrise__sun {
+      position: absolute; left: 0; top: 0; width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(180deg, #EEC89A 0%, #F6E4CD 100%);
+      animation: rise-sun 2.4s var(--ease) .3s both;
+      animation-play-state: paused;
+    }
+    .welcome.is-in .sunrise__sun { animation-play-state: running; }
+    @keyframes rise-sun { from { transform: translateY(24px); } to { transform: none; } }
+    .sunrise__line { width: 120px; height: 1px; background: linear-gradient(90deg, rgba(176, 142, 98, 0), rgba(176, 142, 98, .6), rgba(176, 142, 98, 0)); }
+
+    .welcome__title { margin: 0 0 16px; font: 500 clamp(32px, 8.4vw, 50px)/1.15 var(--serif); letter-spacing: -.01em; color: var(--ink); }
+    .welcome__sub { margin: 0 auto 34px; max-width: 420px; font-size: 15.5px; font-weight: 300; line-height: 1.75; color: var(--ink-soft); }
+    .welcome__note { margin: 18px auto 0; max-width: 300px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+
+    /* ---------- HALAMAN 2: Narasi & Ruang Menulis ---------- */
+    .hero {
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; padding: 80px 0 48px;
+    }
+    .hero__text {
+      position: relative; width: 100%; max-width: 620px; margin: 28px auto 0;
+      font: italic 400 clamp(23px, 5.6vw, 36px)/1.5 var(--serif);
+      color: var(--ink);
+    }
+    .hero__ghost { visibility: hidden; }
+    .hero__typed { position: absolute; inset: 0; }
+    .hero__typed.is-typing::after {
+      content: ""; display: inline-block; width: 1px; height: .95em;
+      margin-left: 4px; vertical-align: -.1em; background: var(--sand);
+      animation: blink 1s steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .hero__punch {
+      margin: 18px 0 0;
+      font: 600 clamp(48px, 13vw, 82px)/1 var(--serif);
+      letter-spacing: -.01em; color: var(--sand-deep);
+      opacity: 0; transform: translateY(14px); filter: blur(8px);
+      transition: opacity 2s var(--ease), transform 2s var(--ease), filter 2s var(--ease);
+    }
+    .hero__punch.is-shown { opacity: 1; transform: none; filter: none; }
+    .hero .scroll-hint { margin-top: 52px; }
+
+    .story { display: grid; gap: 20px; padding: 24px 0 56px; }
+    .panel {
+      position: relative;
+      padding: 30px 22px; border-radius: 22px;
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, .95);
+      box-shadow: var(--shadow);
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+      transition: opacity 1.3s var(--ease), transform 1.3s var(--ease), box-shadow .8s var(--ease);
+    }
+    @media (min-width: 640px) { .panel { padding: 42px 46px; } }
+    .panel__tag { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .panel__icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: var(--sage-soft); color: var(--sage-deep);
+    }
+    .panel__icon svg { width: 17px; height: 17px; }
+    .panel__label { font: 600 11px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+    .story h2 { margin: 0 0 14px; font: 500 clamp(25px, 5.6vw, 32px)/1.25 var(--serif); color: var(--ink); }
+    .story .panel p { margin: 0; font-size: 15.5px; font-weight: 300; line-height: 1.8; color: var(--ink-soft); }
+    .story .panel p + p { margin-top: 12px; }
+    .story blockquote {
+      margin: 4px 0 18px; padding: 4px 0 4px 18px;
+      border-left: 1.5px solid var(--sand);
+      font: italic 400 clamp(21px, 4.8vw, 26px)/1.5 var(--serif); color: var(--ink);
+    }
+
+    .form-section { padding-bottom: 16px; }
+    .panel--form { padding: 36px 18px 26px; text-align: center; }
+    @media (min-width: 640px) { .panel--form { padding: 50px 48px 38px; } }
+    .panel--form.is-focus {
+      box-shadow: 0 1px 2px rgba(45, 51, 55, .04), 0 30px 80px -30px rgba(111, 140, 126, .45);
+    }
+    .question {
+      margin: 16px auto 14px; max-width: 560px;
+      font: 500 clamp(24px, 5.6vw, 32px)/1.3 var(--serif); color: var(--ink);
+      text-align: center;
+    }
+    .question__sub {
+      margin: 0 auto 28px; max-width: 440px;
+      font-size: 14.5px; font-weight: 300; line-height: 1.7; color: var(--muted);
+      text-align: center;
+    }
+
+    .writebox {
+      position: relative; text-align: left;
+      background: #FFFFFF;
+      border: 1px solid rgba(45, 51, 55, .1);
+      border-radius: 16px;
+      box-shadow: 0 1px 2px rgba(45, 51, 55, .03);
+      transition: border-color .5s, box-shadow .5s;
+    }
+    .writebox:hover { border-color: rgba(45, 51, 55, .16); }
+    .writebox:focus-within { border-color: rgba(111, 140, 126, .55); box-shadow: 0 0 0 4px rgba(111, 140, 126, .12); }
+    .writebox.is-nudge { animation: nudge .45s var(--ease); }
+    @keyframes nudge { 0%, 100% { transform: none; } 30% { transform: translateX(-5px); } 70% { transform: translateX(5px); } }
+    .writebox textarea {
+      display: block; width: 100%; min-height: 220px; resize: none; overflow: hidden;
+      border: 0; outline: none; background: transparent; border-radius: 16px;
+      padding: 20px 20px 42px;
+      font: 400 16.5px/1.85 var(--sans); color: var(--ink);
+      caret-color: var(--sage-deep);
+      -webkit-appearance: none; appearance: none;
+      transition: height .2s var(--ease);
+    }
+    .writebox textarea::placeholder { color: var(--faint); transition: opacity .5s; }
+    .writebox textarea:focus::placeholder { opacity: .45; }
+    .writebox__count {
+      position: absolute; right: 16px; bottom: 12px;
+      font-size: 11.5px; color: var(--faint); pointer-events: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .writebox__count.is-near { color: var(--sand-deep); }
+
+    .status {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+      margin: 12px 4px 24px; text-align: left; min-height: 24px;
+    }
+    .status__msg { margin: 0; font: italic 500 16.5px/1.4 var(--serif); color: var(--sage); transition: opacity .4s; }
+    .status__msg.is-changing { opacity: 0; }
+    .status__msg.is-alert { color: var(--sand-deep); }
+    .save-state { flex-shrink: 0; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+    @media (max-width: 440px) { .status { flex-direction: column; gap: 4px; } }
+
+    /* ---------- HALAMAN 3: Kartu ---------- */
+    .result { padding-top: 84px; text-align: center; }
+    .result__title { margin: 14px auto 8px; max-width: 480px; font: 500 clamp(27px, 6.4vw, 38px)/1.25 var(--serif); }
+    .result__sub { margin: 0 auto 30px; max-width: 420px; font-size: 14.5px; font-weight: 300; color: var(--muted); }
+    .result__actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 30px; }
+    .result__note { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+    .link-btn {
+      padding: 6px; border: 0; background: none; cursor: pointer;
+      font: 500 12.5px/1.4 var(--sans); color: var(--sand-deep);
+      text-decoration: underline; text-underline-offset: 3px;
+    }
+
+    .card {
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+      width: 100%; max-width: 560px; margin: 0 auto;
+      font-size: clamp(14px, 3.8vw, 16px);
+      padding: 2.6em 2.1em 2em;
+      border-radius: 1.4em;
+      text-align: left; color: var(--ink);
+      background: linear-gradient(165deg, #FFFEFB 0%, #FBF7F0 52%, #F0F4F2 100%);
+      border: 1px solid rgba(176, 142, 98, .2);
+      box-shadow: 0 2px 4px rgba(45, 51, 55, .03), 0 32px 64px -30px rgba(110, 90, 60, .32);
+    }
+    .card::before {
+      content: ""; position: absolute; top: .8em; right: .8em; bottom: .8em; left: .8em;
+      border: 1px solid rgba(176, 142, 98, .22); border-radius: 1em;
+      pointer-events: none; z-index: 1;
+    }
+    .card::after {
+      content: ""; position: absolute; width: 20em; height: 20em; top: -9em; right: -8em;
+      border-radius: 50%;
+      background: linear-gradient(210deg, rgba(243, 220, 193, .6) 0%, rgba(243, 220, 193, 0) 65%);
+      pointer-events: none; z-index: 0;
+    }
+    .card > * { position: relative; z-index: 2; }
+    .result .card { animation: cardIn 1.8s var(--ease) .2s both; }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(22px) scale(.985); } to { opacity: 1; transform: none; } }
+
+    /* Kilau cahaya yang lewat sekali (hanya di layar) */
+    .card > .card__shine {
+      position: absolute; inset: 0; z-index: 3; pointer-events: none;
+      background: linear-gradient(115deg, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, .75) 50%, rgba(255, 255, 255, 0) 62%);
+      background-size: 260% 100%; background-position: 130% 0;
+      animation: shine 2.6s var(--ease) 1.4s both;
+    }
+    @keyframes shine { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+
+    .card__top { display: flex; justify-content: space-between; align-items: baseline; gap: 1em; }
+    .card__label { font: 600 .64em/1.4 var(--sans); letter-spacing: .26em; text-transform: uppercase; color: var(--sand); white-space: nowrap; }
+    .card__date { font: 400 .66em/1.4 var(--sans); color: var(--muted); text-align: right; }
+
+    .card__mark { display: flex; flex-direction: column; align-items: flex-start; margin: 2.3em 0 1.4em; }
+    .card__sunbox { position: relative; width: 2.4em; height: 1.2em; overflow: hidden; }
+    .card__sun {
+      position: absolute; left: 0; top: 0; width: 2.4em; height: 2.4em; border-radius: 50%;
+      background: linear-gradient(180deg, #EEC89A 0%, #F6E4CD 100%);
+    }
+    .card__horizon { display: block; width: 6em; height: 1px; background: linear-gradient(90deg, rgba(176, 142, 98, .65), rgba(176, 142, 98, 0)); }
+
+    .card__question { margin: 0; max-width: 28em; font: italic 400 1.08em/1.45 var(--serif); color: var(--ink-soft); }
+    .card__body { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; margin-top: 1.4em; }
+    .card__qmark { display: block; height: .5em; margin-bottom: .1em; font: 500 4em/1 var(--serif); color: rgba(176, 142, 98, .42); }
+    .card__text { font-family: var(--serif); font-weight: 500; line-height: 1.5; color: var(--ink); overflow-wrap: break-word; word-wrap: break-word; }
+    .card__text p { margin: 0; }
+    .card__text p + p { margin-top: .75em; }
+    .card__text[data-size="1"] { font-size: 1.5em; }
+    .card__text[data-size="2"] { font-size: 1.34em; }
+    .card__text[data-size="3"] { font-size: 1.22em; }
+    .card__text[data-size="4"] { font-size: 1.14em; }
+    .card__text[data-size="5"] { font-size: 1.08em; }
+
+    .card__rule { width: 3.2em; height: 1px; margin: 1.8em 0 1.2em; background: var(--sand); opacity: .55; }
+    .card__closing { margin: 0; font: italic 500 1.04em/1.45 var(--serif); color: var(--ink-soft); }
+    .card__foot { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: .6em 1em; margin-top: 2em; }
+    .card__sign { font: italic 400 .92em/1.3 var(--serif); color: var(--sand-deep); }
+    .card__copy { font: 500 .52em/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+
+    /* Versi ekspor (PNG 4:5, tak terlihat di layar) */
+    #exportStage { position: fixed; top: 0; left: -20000px; width: 1080px; pointer-events: none; z-index: -1; }
+    .card--export {
+      width: 1080px; max-width: none; min-height: 1350px; margin: 0;
+      font-size: 28px; padding: 3.3em 3.1em 2.6em;
+      border: 0; border-radius: 0; box-shadow: none;
+    }
+    .card--export::before { border-radius: .6em; }
+    .card--export .card__text[data-size="1"] { font-size: 1.8em; }
+    .card--export .card__text[data-size="2"] { font-size: 1.5em; }
+    .card--export .card__text[data-size="3"] { font-size: 1.28em; }
+    .card--export .card__text[data-size="4"] { font-size: 1.1em; }
+    .card--export .card__text[data-size="5"] { font-size: .96em; }
+
+    /* ==========================================================
+       TIRAI TRANSISI, PRATINJAU, TOAST
+       ========================================================== */
+    .veil {
+      position: fixed; inset: 0; z-index: 60;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      padding: 24px; text-align: center;
+      background: linear-gradient(180deg, #FDFCFA, #F1F5F3);
+      opacity: 0; visibility: hidden;
+      transition: opacity 1s var(--ease), visibility 1s;
+    }
+    .veil.is-on { opacity: 1; visibility: visible; }
+    .veil__orb { position: relative; width: 120px; height: 120px; display: grid; place-items: center; margin-bottom: 6px; }
+    .veil__orb > * { grid-area: 1 / 1; }
+    .veil__orb .breath__ripple { width: 64px; height: 64px; animation-duration: 4.5s; }
+    .veil__orb .breath__ripple:nth-child(2) { animation-delay: 1.5s; }
+    .veil__orb .breath__ripple:nth-child(3) { animation-delay: 3s; }
+    .veil__dot {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #FFFFFF, #F4E6D3 60%, #E9D8C0);
+      box-shadow: 0 18px 40px -16px rgba(176, 142, 98, .5);
+      animation: breathe 3s ease-in-out infinite alternate;
+    }
+    .veil__big { margin: 0; max-width: 460px; font: italic 500 clamp(26px, 6.6vw, 38px)/1.3 var(--serif); color: var(--ink); }
+    .veil__small { margin: 0; font-size: 13px; color: var(--muted); }
+    .veil.is-on .veil__big { animation: pageIn 1.4s var(--ease) .2s both; }
+    .veil.is-on .veil__small { animation: pageIn 1.4s var(--ease) .5s both; }
+
+    .preview {
+      position: fixed; inset: 0; z-index: 70;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      padding: 20px; text-align: center;
+      background: rgba(246, 244, 240, .94);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .preview img { max-width: min(92vw, 460px); max-height: 70vh; border-radius: 10px; box-shadow: var(--shadow); -webkit-touch-callout: default; }
+    .preview p { margin: 0; max-width: 340px; font-size: 13.5px; color: var(--ink-soft); }
+
+    .toast {
+      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 80;
+      max-width: calc(100% - 32px); padding: 11px 20px; border-radius: 999px;
+      background: rgba(255, 255, 255, .96); border: 1px solid var(--line); box-shadow: var(--shadow);
+      font-size: 13px; color: var(--ink-soft); text-align: center;
+      opacity: 0; transform: translate(-50%, 20px); pointer-events: none;
+      transition: opacity .5s var(--ease), transform .5s var(--ease);
+    }
+    .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+    .copyright {
+      position: relative; z-index: 1;
+      padding: 12px 16px calc(26px + env(safe-area-inset-bottom));
+      text-align: center; font-size: 11px; letter-spacing: .06em; color: var(--faint);
+    }
+
+    /* Layar pendek / iframe LMS yang rendah */
+    @media (max-height: 640px) {
+      .breath-screen { padding: 32px 0 96px; }
+      .breath { margin: 16px auto 10px; }
+      .breath-guide { font-size: 12.5px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+      .reveal, .stagger > * { opacity: 1; transform: none; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Latar -->
+  <div class="ambient" aria-hidden="true">
+    <div class="blob blob--a"></div>
+    <div class="blob blob--b"></div>
+    <div class="blob blob--c"></div>
+  </div>
+  <canvas class="motes" id="motes" aria-hidden="true"></canvas>
+  <div class="progress" id="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <!-- Top bar -->
+  <div class="topbar" id="topbar">
+    <span class="pill"><span class="pill__dot"></span>Jurnal Refleksi Pribadi</span>
+    <button type="button" class="sound-btn" id="soundToggle" aria-pressed="false" aria-label="Nyalakan musik">
+      <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span id="soundLabel">Musik mati</span>
+    </button>
+  </div>
+
+  <main id="app" class="app">
+
+    <!-- ===================== HALAMAN 1: Napas & Sambutan ===================== -->
+    <div id="pageWelcome" class="page">
+
+      <section class="breath-screen" id="breathScreen">
+        <span class="eyebrow">Ruang Refleksi</span>
+
+        <div class="breath" aria-hidden="true">
+          <div class="breath__ripple"></div>
+          <div class="breath__ripple"></div>
+          <div class="breath__ripple"></div>
+          <div class="breath__ring"></div>
+          <div class="breath__core" id="breathCore"><span id="breathText">Tarik napas</span></div>
+        </div>
+
+        <p class="breath-guide">Ikuti lingkaran ini. Tarik napas saat ia membesar, hembuskan saat ia mengecil.</p>
+
+        <button type="button" class="scroll-hint" id="toWelcome">
+          Gulir ke bawah
+          <span class="scroll-hint__line" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="welcome stagger" id="welcomeSection">
+        <div class="sunrise" aria-hidden="true">
+          <span class="sunrise__box"><span class="sunrise__sun"></span></span>
+          <span class="sunrise__line"></span>
+        </div>
+        <h1 class="welcome__title">Sejenak, untuk diri sendiri.</h1>
+        <p class="welcome__sub">Anda baru saja menyelesaikan video pembelajaran. Sebelum melangkah lebih jauh, beri diri Anda beberapa menit untuk hening dan jujur.</p>
+        <div>
+          <button type="button" class="btn btn--primary btn--halo" id="startBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+            Mulai Refleksi
+          </button>
+        </div>
+        <p class="welcome__note">Musik akan diputar otomatis. Anda dapat mematikannya kapan saja di pojok kanan atas.</p>
+      </section>
+    </div>
+
+    <!-- ===================== HALAMAN 2: Narasi & Ruang Menulis ===================== -->
+    <div id="pageReflect" class="page" hidden>
+
+      <section class="hero" id="hero">
+        <span class="eyebrow">Suara dari Dalam</span>
+        <p class="hero__text" id="heroText" aria-label="Hubungan perusahaan dan karyawan adalah pengalaman yang dirasakan seseorang setiap hari. Dan sering kali, pengalaman itu dimulai dari satu orang…">
+          <span class="hero__ghost" aria-hidden="true">Hubungan perusahaan dan karyawan adalah pengalaman yang dirasakan seseorang setiap hari. Dan sering kali, pengalaman itu dimulai dari satu orang…</span>
+          <span class="hero__typed" id="typed" aria-hidden="true"></span>
+        </p>
+        <p class="hero__punch" id="punchline">Atasannya.</p>
+        <button type="button" class="scroll-hint" id="scrollHint">
+          Gulir perlahan
+          <span class="scroll-hint__line" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="story" id="story">
+        <article class="panel reveal stagger">
+          <div class="panel__tag">
+            <span class="panel__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 18h18M6.5 18a5.5 5.5 0 0 1 11 0M12 5v3M5.2 9.6l1.8 1.6M18.8 9.6 17 11.2"/></svg>
+            </span>
+            <span class="panel__label">Realitas Setiap Pagi</span>
+          </div>
+          <h2>Anda berdiri di hadapan mereka setiap hari.</h2>
+          <p>Setiap kali mesin kasir berbunyi, palet dimuat di gudang, atau komputer dinyalakan — ada pasang mata yang menatap Anda bukan hanya sebagai pengatur target.</p>
+          <p>Bagi mereka, Anda adalah wajah nyata dari perusahaan. Nada bicara Anda, respons Anda saat mereka kelelahan, dan ketenangan Anda saat ada masalah, menentukan apakah hari itu mereka jalani dengan bangga atau dengan sesak di dada.</p>
+        </article>
+
+        <article class="panel reveal stagger">
+          <div class="panel__tag">
+            <span class="panel__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+            </span>
+            <span class="panel__label">Paradoks Kepedulian</span>
+          </div>
+          <blockquote>“Kita bisa meminta seseorang untuk datang bekerja. Kita bisa menetapkan target. Namun kita tidak pernah bisa memerintahkan seseorang untuk peduli.”</blockquote>
+          <p>Kepedulian hanya tumbuh ketika seseorang merasa didengar tanpa dihakimi, dihargai saat lelah, dan dipercaya oleh orang yang memimpinnya.</p>
+        </article>
+      </section>
+
+      <section class="form-section" id="formSection">
+        <div class="panel panel--form reveal" id="formPanel">
+          <span class="eyebrow">Ruang Menulis</span>
+          <h2 class="question">“Kalau hari ini tim Anda ditanya bagaimana rasanya dipimpin oleh Anda, apa yang akan mereka ceritakan?”</h2>
+          <p class="question__sub">Tuliskan apa adanya, dari sudut pandang mereka. Tanpa penghakiman — tulisan ini hanya untuk Anda.</p>
+
+          <label for="reflection" class="sr-only">Tuliskan refleksi Anda</label>
+          <div class="writebox" id="writebox">
+            <textarea id="reflection" maxlength="1500" rows="7" placeholder="Mulailah menulis di sini…"></textarea>
+            <span class="writebox__count" id="count">0 / 1500</span>
+          </div>
+
+          <div class="status">
+            <p class="status__msg" id="encourage" aria-live="polite">Tidak ada jawaban yang benar atau salah.</p>
+            <span class="save-state" id="saveState"></span>
+          </div>
+
+          <!-- Sengaja memakai type="button" (bukan form submit) agar tetap berfungsi di iframe LMS -->
+          <button type="button" class="btn btn--primary btn--block" id="submitBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 10-10a2.1 2.1 0 0 0-3-3L5 16l-1 4z"/></svg>
+            Simpan Refleksi Saya
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================== HALAMAN 3: Kartu Refleksi ===================== -->
+    <section id="resultView" class="page result" hidden>
+      <div class="stagger is-in">
+        <span class="eyebrow">Kartu Refleksi Anda</span>
+        <h2 class="result__title">Kata-kata ini milik Anda.</h2>
+        <p class="result__sub">Simpan kartunya, lalu baca kembali suatu hari nanti — sebagai pengingat bahwa Anda pernah menuliskannya.</p>
+      </div>
+
+      <div class="card" id="screenCard"></div>
+
+      <div class="result__actions">
+        <button type="button" class="btn btn--primary" id="downloadBtn">
+          <span id="dlIcon" style="display:inline-flex">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>
+          </span>
+          <span id="dlLabel">Simpan Kartu (PNG)</span>
+        </button>
+        <p class="result__note">Gambar akan tersimpan otomatis ke perangkat Anda.</p>
+        <button type="button" class="link-btn" id="fallbackLink" hidden>Gambar tidak terunduh? Ketuk di sini untuk menyimpannya.</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="copyright">© Education and Training Departement 2026</footer>
+
+  <!-- Panggung ekspor PNG (di luar layar) -->
+  <div id="exportStage" aria-hidden="true">
+    <div class="card card--export" id="exportCard"></div>
+  </div>
+
+  <!-- Tirai transisi antarhalaman -->
+  <div class="veil" id="veil" aria-live="polite">
+    <div class="veil__orb" aria-hidden="true">
+      <div class="breath__ripple"></div>
+      <div class="breath__ripple"></div>
+      <div class="breath__ripple"></div>
+      <div class="veil__dot"></div>
+    </div>
+    <p class="veil__big" id="veilBig"></p>
+    <p class="veil__small" id="veilSmall"></p>
+  </div>
+
+  <!-- Pratinjau cadangan (bila unduhan diblokir) -->
+  <div class="preview" id="preview" hidden role="dialog" aria-label="Pratinjau kartu refleksi">
+    <img id="previewImg" alt="Kartu refleksi Anda">
+    <p>Tekan lama (atau klik kanan) pada gambar, lalu pilih <em>Simpan Gambar</em>.</p>
+    <button type="button" class="btn btn--ghost" id="previewClose">Tutup</button>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var $ = function (id) { return document.getElementById(id); };
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ==========================================================
+       1. MESIN SUARA — musik ambient generatif (Web Audio API)
+          Pad lembut + suara ombak halus + denting lonceng acak
+          + ketukan ketik yang lembut untuk teks kutipan.
+          Tidak memerlukan file audio eksternal.
+       ========================================================== */
+    var Sound = (function () {
+      var ctx = null, master, reverb, padBus, bellBus, keyBus, keyNoise;
+      var enabled = false, padTimer = null, bellTimer = null, currentPad = null, chordIndex = 0;
+      var TARGET = 0.55;
+
+      var CHORDS = [
+        [130.81, 196.00, 246.94, 329.63, 392.00, 587.33], // Cmaj9
+        [110.00, 164.81, 246.94, 329.63, 392.00, 523.25], // Am9
+        [87.31, 174.61, 220.00, 329.63, 392.00, 523.25],  // Fmaj9
+        [98.00, 146.83, 246.94, 293.66, 392.00, 587.33]   // G6
+      ];
+      var PENTA = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+
+      function impulse(seconds, decay) {
+        var rate = ctx.sampleRate, len = Math.floor(rate * seconds);
+        var buf = ctx.createBuffer(2, len, rate);
+        for (var ch = 0; ch < 2; ch++) {
+          var d = buf.getChannelData(ch);
+          for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+        }
+        return buf;
+      }
+
+      function ensure() {
+        if (ctx) return true;
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return false;
+        try { ctx = new AC(); } catch (e) { return false; }
+
+        var comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -18; comp.knee.value = 20; comp.ratio.value = 3;
+        comp.connect(ctx.destination);
+
+        master = ctx.createGain(); master.gain.value = 0.0001; master.connect(comp);
+
+        reverb = ctx.createConvolver(); reverb.buffer = impulse(3.8, 2.4);
+        var wet = ctx.createGain(); wet.gain.value = 0.6;
+        reverb.connect(wet); wet.connect(master);
+
+        // Pad (bernapas perlahan)
+        padBus = ctx.createGain(); padBus.gain.value = 0.8;
+        var breath = ctx.createOscillator(); breath.frequency.value = 0.07;
+        var breathDepth = ctx.createGain(); breathDepth.gain.value = 0.22;
+        breath.connect(breathDepth); breathDepth.connect(padBus.gain); breath.start();
+        var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200; lp.Q.value = 0.2;
+        padBus.connect(lp);
+        var dry = ctx.createGain(); dry.gain.value = 0.7; lp.connect(dry); dry.connect(master);
+        var send = ctx.createGain(); send.gain.value = 0.45; lp.connect(send); send.connect(reverb);
+
+        // Lonceng
+        bellBus = ctx.createGain(); bellBus.gain.value = 0.8; bellBus.connect(master);
+
+        // Ketukan ketik: lembut, teredam, sedikit gema agar menyatu dengan musik
+        keyBus = ctx.createGain(); keyBus.gain.value = 1;
+        var keyLP = ctx.createBiquadFilter(); keyLP.type = 'lowpass'; keyLP.frequency.value = 2600; keyLP.Q.value = 0.3;
+        keyBus.connect(keyLP); keyLP.connect(master);
+        var keySend = ctx.createGain(); keySend.gain.value = 0.18; keyLP.connect(keySend); keySend.connect(reverb);
+        var klen = Math.floor(ctx.sampleRate * 0.06);
+        keyNoise = ctx.createBuffer(1, klen, ctx.sampleRate);
+        var kd = keyNoise.getChannelData(0);
+        for (var k = 0; k < klen; k++) kd[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / klen, 3);
+        var bsend = ctx.createGain(); bsend.gain.value = 0.9; bellBus.connect(bsend); bsend.connect(reverb);
+
+        // Ombak halus (brown noise + LFO)
+        var nlen = ctx.sampleRate * 6, nbuf = ctx.createBuffer(1, nlen, ctx.sampleRate), nd = nbuf.getChannelData(0), last = 0;
+        for (var i = 0; i < nlen; i++) { var w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; nd[i] = last * 3.5; }
+        var ns = ctx.createBufferSource(); ns.buffer = nbuf; ns.loop = true;
+        var nf = ctx.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 480;
+        var ng = ctx.createGain(); ng.gain.value = 0.032;
+        var nl = ctx.createOscillator(); nl.frequency.value = 0.09;
+        var nlg = ctx.createGain(); nlg.gain.value = 0.024;
+        nl.connect(nlg); nlg.connect(ng.gain);
+        ns.connect(nf); nf.connect(ng); ng.connect(master);
+        ns.start(); nl.start();
+
+        document.addEventListener('visibilitychange', function () {
+          if (!ctx) return;
+          if (document.hidden) ctx.suspend();
+          else if (enabled) ctx.resume();
+        });
+        return true;
+      }
+
+      function ramp(param, value, seconds) {
+        var now = ctx.currentTime;
+        param.cancelScheduledValues(now);
+        param.setValueAtTime(Math.max(param.value, 0.0001), now);
+        param.linearRampToValueAtTime(value, now + seconds);
+      }
+
+      function playChord() {
+        var freqs = CHORDS[chordIndex % CHORDS.length]; chordIndex++;
+        var now = ctx.currentTime;
+        var g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(1, now + 5);
+        g.connect(padBus);
+        var oscs = freqs.map(function (f, i) {
+          var o = ctx.createOscillator();
+          o.type = i < 2 ? 'sine' : 'triangle';
+          o.frequency.value = f;
+          o.detune.value = Math.random() * 10 - 5;
+          var v = ctx.createGain(); v.gain.value = i < 2 ? 0.06 : 0.022;
+          o.connect(v); v.connect(g); o.start(now);
+          return o;
+        });
+        if (currentPad) {
+          var old = currentPad;
+          old.g.gain.cancelScheduledValues(now);
+          old.g.gain.setValueAtTime(Math.max(old.g.gain.value, 0.0001), now);
+          old.g.gain.exponentialRampToValueAtTime(0.0001, now + 7);
+          old.oscs.forEach(function (o) { o.stop(now + 7.3); });
+        }
+        currentPad = { g: g, oscs: oscs };
+      }
+
+      function bell(freq, vol, dur, delay) {
+        if (!ctx) return;
+        var when = ctx.currentTime + (delay || 0);
+        var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
+        var o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = freq * 2.01;
+        var g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, when);
+        g.gain.exponentialRampToValueAtTime(vol, when + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+        var g2 = ctx.createGain(); g2.gain.value = 0.22;
+        o.connect(g); o2.connect(g2); g2.connect(g); g.connect(bellBus);
+        o.start(when); o2.start(when);
+        o.stop(when + dur + 0.1); o2.stop(when + dur + 0.1);
+      }
+
+      // Satu ketukan lembut. kind: 'key' | 'space' | 'stop'
+      function key(kind) {
+        if (!enabled || !ctx || ctx.state !== 'running') return;
+        var t = ctx.currentTime + 0.005;
+        var soft = kind === 'stop' ? 0.7 : 1;
+
+        // Lapisan "tik" — noise pendek yang disaring
+        var src = ctx.createBufferSource(); src.buffer = keyNoise;
+        src.playbackRate.value = 0.8 + Math.random() * 0.35;
+        var bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.1;
+        bp.frequency.value = kind === 'space' ? 750 + Math.random() * 150 : 1250 + Math.random() * 700;
+        var g = ctx.createGain();
+        var vol = (kind === 'space' ? 0.13 : 0.1) * soft * (0.7 + Math.random() * 0.45);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + 0.002);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+        src.connect(bp); bp.connect(g); g.connect(keyBus);
+        src.start(t); src.stop(t + 0.07);
+
+        // Lapisan "tuk" — dentum kayu kecil yang hangat
+        var o = ctx.createOscillator(); o.type = 'sine';
+        var f0 = kind === 'space' ? 150 + Math.random() * 20 : 240 + Math.random() * 70;
+        o.frequency.setValueAtTime(f0 * 1.4, t);
+        o.frequency.exponentialRampToValueAtTime(f0, t + 0.02);
+        var og = ctx.createGain();
+        og.gain.setValueAtTime(0.0001, t);
+        og.gain.exponentialRampToValueAtTime((kind === 'space' ? 0.042 : 0.028) * soft, t + 0.003);
+        og.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+        o.connect(og); og.connect(keyBus);
+        o.start(t); o.stop(t + 0.09);
+      }
+
+      function scheduleBells() {
+        clearTimeout(bellTimer);
+        bellTimer = setTimeout(function () {
+          if (!enabled) return;
+          var f = PENTA[Math.floor(Math.random() * PENTA.length)];
+          bell(f, 0.05, 5);
+          if (Math.random() < 0.4) bell(PENTA[Math.floor(Math.random() * PENTA.length)], 0.035, 5, 0.45);
+          scheduleBells();
+        }, 6000 + Math.random() * 7000);
+      }
+
+      function enable() {
+        if (!ensure()) return false;
+        enabled = true;
+        try { ctx.resume(); } catch (e) {}
+        ramp(master.gain, TARGET, 3);
+        if (!padTimer) { playChord(); padTimer = setInterval(playChord, 16000); }
+        scheduleBells();
+        return true;
+      }
+
+      function disable() {
+        enabled = false;
+        clearTimeout(bellTimer);
+        clearInterval(padTimer); padTimer = null;
+        if (!ctx) return;
+        ramp(master.gain, 0.0001, 1.2);
+        setTimeout(function () { if (!enabled && ctx) ctx.suspend(); }, 1400);
+      }
+
+      // Bila browser/LMS mengizinkan autoplay, musik langsung menyala saat link dibuka
+      function tryAutoplay() {
+        if (!ensure()) return false;
+        if (ctx.state === 'running') { enable(); return true; }
+        return false;
+      }
+
+      return {
+        enable: enable,
+        disable: disable,
+        tryAutoplay: tryAutoplay,
+        isOn: function () { return enabled; },
+        key: key,
+        softBell: function () { if (enabled) bell([659.25, 783.99, 880.00][Math.floor(Math.random() * 3)], 0.06, 4.5); },
+        welcome: function () { if (enabled) { bell(523.25, 0.06, 5, 0.4); bell(783.99, 0.045, 5, 0.9); } },
+        chime: function () { if (enabled) [523.25, 659.25, 783.99, 1046.50].forEach(function (f, i) { bell(f, 0.08, 5.5, i * 0.22); }); },
+        saved: function () { if (enabled) { bell(783.99, 0.07, 4.5); bell(1174.66, 0.045, 5, 0.2); } }
+      };
+    })();
+
+    /* ==========================================================
+       2. PARTIKEL CAHAYA (melayang perlahan ke atas)
+       ========================================================== */
+    (function motes() {
+      var c = $('motes');
+      if (!c || !c.getContext || reducedMotion) { if (c) c.hidden = true; return; }
+      var g = c.getContext('2d'), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var W = 0, H = 0, ps = [], running = false;
+      var COLORS = ['214,178,128', '150,180,165', '232,204,166'];
+
+      function make(init) {
+        return {
+          x: Math.random() * W, y: init ? Math.random() * H : H + 12,
+          r: 0.8 + Math.random() * 2.2, vy: 0.07 + Math.random() * 0.2,
+          sway: Math.random() * 6.283, sw: 0.002 + Math.random() * 0.004,
+          a: 0.18 + Math.random() * 0.35, tw: Math.random() * 6.283,
+          c: COLORS[Math.floor(Math.random() * COLORS.length)]
+        };
+      }
+      function resize() {
+        W = window.innerWidth; H = window.innerHeight;
+        c.width = W * dpr; c.height = H * dpr;
+        c.style.width = W + 'px'; c.style.height = H + 'px';
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var n = Math.round(Math.min(44, Math.max(16, W * H / 24000)));
+        while (ps.length < n) ps.push(make(true));
+        ps.length = n;
+      }
+      function frame() {
+        if (!running) return;
+        g.clearRect(0, 0, W, H);
+        for (var i = 0; i < ps.length; i++) {
+          var p = ps[i];
+          p.y -= p.vy; p.sway += p.sw; p.tw += 0.012;
+          if (p.y < -12) { ps[i] = p = make(false); }
+          var x = p.x + Math.sin(p.sway) * 16;
+          var al = p.a * (0.55 + 0.45 * Math.sin(p.tw));
+          var rad = p.r * 4;
+          var grd = g.createRadialGradient(x, p.y, 0, x, p.y, rad);
+          grd.addColorStop(0, 'rgba(' + p.c + ',' + al + ')');
+          grd.addColorStop(1, 'rgba(' + p.c + ',0)');
+          g.fillStyle = grd;
+          g.beginPath(); g.arc(x, p.y, rad, 0, 6.283); g.fill();
+        }
+        requestAnimationFrame(frame);
+      }
+      function start() { if (!running) { running = true; requestAnimationFrame(frame); } }
+      resize(); start();
+      window.addEventListener('resize', resize);
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) running = false; else start();
+      });
+    })();
+
+    /* ==========================================================
+       3. UTILITAS UI & KONTROL MUSIK
+       ========================================================== */
+    var toastTimer;
+    function toast(msg) {
+      var t = $('toast');
+      t.textContent = msg;
+      t.classList.add('is-on');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { t.classList.remove('is-on'); }, 3600);
+    }
+
+    var soundBtn = $('soundToggle'), topbar = $('topbar');
+    function updateSoundBtn() {
+      var on = Sound.isOn();
+      soundBtn.classList.toggle('is-on', on);
+      soundBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      soundBtn.setAttribute('aria-label', on ? 'Matikan musik' : 'Nyalakan musik');
+      $('soundLabel').textContent = on ? 'Musik nyala' : 'Musik mati';
+    }
+    soundBtn.addEventListener('click', function () {
+      if (Sound.isOn()) Sound.disable();
+      else if (!Sound.enable()) toast('Perangkat ini belum mendukung pemutaran audio.');
+      updateSoundBtn();
+    });
+
+    if (Sound.tryAutoplay()) { updateSoundBtn(); topbar.classList.add('is-visible'); }
+
+    // Tirai transisi: tampil → (aksi di tengah) → hilang
+    function veil(big, small, hold, middle) {
+      var v = $('veil');
+      $('veilBig').textContent = big;
+      $('veilSmall').textContent = small || '';
+      v.classList.add('is-on');
+      document.body.classList.add('is-locked');
+      setTimeout(function () {
+        if (middle) middle();
+        window.scrollTo(0, 0);
+        setTimeout(function () {
+          v.classList.remove('is-on');
+          document.body.classList.remove('is-locked');
+        }, 120);
+      }, reducedMotion ? 500 : hold);
+    }
+
+    function showPage(id) {
+      ['pageWelcome', 'pageReflect', 'resultView'].forEach(function (p) { $(p).hidden = (p !== id); });
+      var el = $(id);
+      el.classList.remove('is-entering'); void el.offsetWidth; el.classList.add('is-entering');
+    }
+
+    /* ==========================================================
+       4. HALAMAN 1 — Napas sejenak & sambutan
+       ========================================================== */
+    var breathText = $('breathText'), inhale = true;
+    $('breathCore').addEventListener('animationiteration', function () {
+      inhale = !inhale;
+      breathText.classList.add('is-fading');
+      setTimeout(function () {
+        breathText.textContent = inhale ? 'Tarik napas' : 'Hembuskan';
+        breathText.classList.remove('is-fading');
+      }, 500);
+    });
+
+    // Ajakan menggulir muncul setelah satu tarikan napas
+    setTimeout(function () { $('toWelcome').classList.add('is-shown'); }, reducedMotion ? 0 : 3200);
+    $('toWelcome').addEventListener('click', function () {
+      $('welcomeSection').scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+
+    $('startBtn').addEventListener('click', function () {
+      if (!Sound.isOn()) Sound.enable();
+      Sound.welcome();
+      updateSoundBtn();
+      veil('Mari kita mulai, perlahan.', 'Biarkan pikiran Anda ikut melambat.', 2200, function () {
+        showPage('pageReflect');
+        topbar.classList.add('is-visible');
+        $('progress').classList.add('is-visible');
+        setTimeout(startTypewriter, reducedMotion ? 0 : 900);
+      });
+    });
+
+    /* ==========================================================
+       5. HALAMAN 2 — Mesin tik, cerita, progres
+       ========================================================== */
+    var phrase = 'Hubungan perusahaan dan karyawan adalah pengalaman yang dirasakan seseorang setiap hari. Dan sering kali, pengalaman itu dimulai dari satu orang…';
+    var typed = $('typed'), typingStarted = false;
+
+    function finishHero() {
+      typed.classList.remove('is-typing');
+      setTimeout(function () {
+        $('punchline').classList.add('is-shown');
+        Sound.softBell();
+        setTimeout(function () { $('scrollHint').classList.add('is-shown'); }, 1300);
+      }, reducedMotion ? 0 : 800);
+    }
+
+    function startTypewriter() {
+      if (typingStarted) return;
+      typingStarted = true;
+      if (reducedMotion) { typed.textContent = phrase; finishHero(); return; }
+      var i = 0;
+      typed.classList.add('is-typing');
+      (function step() {
+        if (i < phrase.length) {
+          var ch = phrase.charAt(i);
+          typed.textContent += ch;
+          i++;
+          // Bunyi ketik lembut (ikut mati bila musik dimatikan)
+          if (ch === ' ') Sound.key('space');
+          else if (ch === '.' || ch === ',' || ch === '…') Sound.key('stop');
+          else Sound.key('key');
+          // Ritme sedikit lebih pelan agar terasa tenang, dengan jeda alami
+          var delay = 52 + Math.random() * 40;
+          if (ch === ' ' && Math.random() < 0.15) delay += 120;
+          if (ch === '.' || ch === '…') delay += 520;
+          else if (ch === ',') delay += 280;
+          setTimeout(step, delay);
+        } else {
+          finishHero();
+        }
+      })();
+    }
+
+    $('scrollHint').addEventListener('click', function () {
+      $('story').scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+
+    // Muncul perlahan saat digulir
+    var revealTargets = document.querySelectorAll('.reveal, .stagger');
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+      revealTargets.forEach(function (el) { io.observe(el); });
+    } else {
+      revealTargets.forEach(function (el) { el.classList.add('is-in'); });
+    }
+
+    // Garis progres membaca
+    var progressBar = $('progressBar'), ticking = false;
+    function updateProgress() {
+      ticking = false;
+      if ($('pageReflect').hidden) return;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var f = max > 0 ? Math.min(1, Math.max(0, window.pageYOffset / max)) : 0;
+      progressBar.style.transform = 'scaleX(' + f + ')';
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(updateProgress); }
+    }, { passive: true });
+
+    /* ==========================================================
+       6. RUANG MENULIS
+       ========================================================== */
+    var MIN = 15, MAX = 1500, DRAFT_KEY = 'ruang_refleksi_draft';
+    var ta = $('reflection'), enc = $('encourage'), countEl = $('count'), saveState = $('saveState'), writebox = $('writebox');
+
+    var STAGES = [
+      { at: 0,   msg: 'Tidak ada jawaban yang benar atau salah.' },
+      { at: 1,   msg: 'Pelan-pelan saja. Biarkan kata-kata datang dengan sendirinya.' },
+      { at: MIN, msg: 'Bagus. Teruskan — apa lagi yang mungkin mereka rasakan?' },
+      { at: 120, msg: 'Anda sedang jujur pada diri sendiri. Itu tidak mudah.' },
+      { at: 300, msg: 'Terima kasih telah menuliskannya sedalam ini.' }
+    ];
+    var stageNow = -1, stageMax = 0;
+
+    function setEncourage(msg, alert) {
+      if (enc.textContent === msg) { enc.classList.toggle('is-alert', !!alert); return; }
+      enc.classList.add('is-changing');
+      setTimeout(function () {
+        enc.textContent = msg;
+        enc.classList.toggle('is-alert', !!alert);
+        enc.classList.remove('is-changing');
+      }, 250);
+    }
+
+    function autosize() {
+      ta.style.height = 'auto';
+      ta.style.height = Math.max(ta.scrollHeight, 220) + 'px';
+    }
+
+    var storageOK = true;
+    try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); } catch (e) { storageOK = false; }
+
+    var saveTimer;
+    function saveDraft() {
+      if (!storageOK) return;
+      saveState.textContent = 'Menyimpan…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        try { localStorage.setItem(DRAFT_KEY, ta.value); saveState.textContent = 'Draf tersimpan otomatis'; }
+        catch (e) { saveState.textContent = ''; }
+      }, 600);
+    }
+
+    function update(silent) {
+      var n = ta.value.trim().length;
+      countEl.textContent = ta.value.length + ' / ' + MAX;
+      countEl.classList.toggle('is-near', ta.value.length > MAX - 150);
+      var idx = 0;
+      for (var i = 0; i < STAGES.length; i++) if (n >= STAGES[i].at) idx = i;
+      if (idx !== stageNow) {
+        setEncourage(STAGES[idx].msg, false);
+        if (!silent && idx > stageMax && idx >= 2) Sound.softBell();
+        stageMax = Math.max(stageMax, idx);
+        stageNow = idx;
+      }
+      autosize();
+    }
+
+    ta.addEventListener('input', function () { update(false); saveDraft(); });
+    window.addEventListener('resize', function () { if (!$('pageReflect').hidden) autosize(); });
+
+    // Mode fokus: panel memancarkan cahaya lembut, top bar meredup
+    ta.addEventListener('focus', function () { $('formPanel').classList.add('is-focus'); topbar.classList.add('is-quiet'); });
+    ta.addEventListener('blur', function () { $('formPanel').classList.remove('is-focus'); topbar.classList.remove('is-quiet'); });
+
+    if (storageOK) {
+      try {
+        var draft = localStorage.getItem(DRAFT_KEY);
+        if (draft) { ta.value = draft; saveState.textContent = 'Draf dipulihkan'; }
+      } catch (e) {}
+    }
+    update(true);
+
+    /* ==========================================================
+       7. KARTU REFLEKSI
+       ========================================================== */
+    var CARD_HTML =
+      '<div class="card__top">' +
+        '<span class="card__label">Catatan Refleksi</span>' +
+        '<span class="card__date"></span>' +
+      '</div>' +
+      '<div class="card__mark" aria-hidden="true"><span class="card__sunbox"><span class="card__sun"></span></span><span class="card__horizon"></span></div>' +
+      '<p class="card__question">Jika tim saya ditanya bagaimana rasanya dipimpin oleh saya, inilah yang mungkin mereka ceritakan:</p>' +
+      '<div class="card__body"><span class="card__qmark" aria-hidden="true">“</span><div class="card__text"></div></div>' +
+      '<div class="card__rule" aria-hidden="true"></div>' +
+      '<p class="card__closing">Karena CINTA bukan hanya untuk dipahami.<br>CINTA harus dirasakan.</p>' +
+      '<div class="card__foot">' +
+        '<span class="card__sign">— pengingat untuk diri saya sendiri</span>' +
+        '<span class="card__copy">© Education and Training Departement 2026</span>' +
+      '</div>';
+
+    function sizeFor(len) { return len < 160 ? 1 : len < 380 ? 2 : len < 700 ? 3 : len < 1050 ? 4 : 5; }
+
+    function fillCard(card, text, when) {
+      card.innerHTML = CARD_HTML;
+      var date = when.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      var time = when.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      card.querySelector('.card__date').textContent = date + ' · ' + time;
+      var box = card.querySelector('.card__text');
+      box.setAttribute('data-size', sizeFor(text.length));
+      text.split(/\n{2,}/).forEach(function (para) {
+        var p = document.createElement('p');
+        para.split('\n').forEach(function (line, i) {
+          if (i) p.appendChild(document.createElement('br'));
+          p.appendChild(document.createTextNode(line));
+        });
+        box.appendChild(p);
+      });
+    }
+
+    /* ==========================================================
+       8. SIMPAN REFLEKSI + SINYAL LMS
+       ========================================================== */
+    var submitted = false, writtenAt = null;
+
+    $('submitBtn').addEventListener('click', function () {
+      var text = ta.value.replace(/\r\n/g, '\n').trim();
+
+      if (text.length < MIN) {
+        setEncourage(text.length === 0
+          ? 'Tuliskan dulu refleksi Anda di kolom di atas, ya.'
+          : 'Tuliskan sedikit lagi — beberapa kalimat saja sudah cukup.', true);
+        writebox.classList.remove('is-nudge');
+        void writebox.offsetWidth;
+        writebox.classList.add('is-nudge');
+        ta.focus();
+        return;
+      }
+      if (submitted) return;
+      submitted = true;
+
+      // --- Sinyal ke LMS untuk membuka misi selanjutnya ---
+      try { window.parent.postMessage("scoreBarFound", "*"); } catch (err) {}
+      try { window.top.postMessage("scoreBarFound", "*"); } catch (err) {}
+
+      writtenAt = new Date();
+      var screenCard = $('screenCard');
+      fillCard(screenCard, text, writtenAt);
+      fillCard($('exportCard'), text, writtenAt);
+      if (!reducedMotion) {
+        var shine = document.createElement('span');
+        shine.className = 'card__shine';
+        shine.setAttribute('aria-hidden', 'true');
+        screenCard.appendChild(shine);
+      }
+
+      try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+
+      Sound.chime();
+      ta.blur();
+      veil('Terima kasih telah jujur pada diri sendiri.', 'Menyiapkan kartu refleksi Anda…', 3000, function () {
+        showPage('resultView');
+        $('progress').classList.remove('is-visible');
+      });
+    });
+
+    /* ==========================================================
+       9. SIMPAN KARTU SEBAGAI PNG (langsung tersimpan)
+       ========================================================== */
+    var dlBtn = $('downloadBtn'), dlLabel = $('dlLabel'), dlIcon = $('dlIcon');
+    var ICON_DL = dlIcon.innerHTML;
+    var ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    var lastCanvas = null, busy = false;
+
+    function setDl(state) {
+      if (state === 'loading') { dlIcon.innerHTML = '<span class="spinner" aria-hidden="true"></span>'; dlLabel.textContent = 'Menyiapkan kartu…'; }
+      else if (state === 'done') { dlIcon.innerHTML = ICON_OK; dlLabel.textContent = 'Tersimpan'; }
+      else { dlIcon.innerHTML = ICON_DL; dlLabel.textContent = 'Simpan Kartu (PNG)'; }
+    }
+
+    function fileName() {
+      var d = writtenAt || new Date();
+      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+      return 'Kartu_Refleksi_' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '.png';
+    }
+
+    function renderCard() {
+      if (typeof html2canvas !== 'function') return Promise.reject(new Error('html2canvas tidak termuat'));
+      var node = $('exportCard');
+      var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+      return ready.then(function () {
+        return html2canvas(node, {
+          scale: 1.5,
+          backgroundColor: '#FBF8F3',
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 1080,
+          windowHeight: Math.max(node.offsetHeight, 1350),
+          onclone: function (doc) {
+            var stage = doc.getElementById('exportStage');
+            if (stage) { stage.style.left = '0px'; stage.style.top = '0px'; }
+          }
+        });
+      });
+    }
+
+    function saveCanvas(canvas, name) {
+      return new Promise(function (resolve) {
+        function go(href, revoke) {
+          var a = document.createElement('a');
+          a.href = href; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () { a.remove(); if (revoke) URL.revokeObjectURL(href); }, 4000);
+          resolve();
+        }
+        if (canvas.toBlob) {
+          canvas.toBlob(function (blob) {
+            if (blob) go(URL.createObjectURL(blob), true);
+            else go(canvas.toDataURL('image/png'), false);
+          }, 'image/png');
+        } else {
+          go(canvas.toDataURL('image/png'), false);
+        }
+      });
+    }
+
+    dlBtn.addEventListener('click', function () {
+      if (busy) return;
+      busy = true;
+      setDl('loading');
+      renderCard()
+        .then(function (canvas) {
+          lastCanvas = canvas;
+          return saveCanvas(canvas, fileName());
+        })
+        .then(function () {
+          Sound.saved();
+          setDl('done');
+          toast('Kartu refleksi tersimpan di perangkat Anda.');
+          $('fallbackLink').hidden = false;
+          setTimeout(function () { setDl('idle'); }, 2800);
+        })
+        .catch(function (err) {
+          console.error(err);
+          setDl('idle');
+          toast('Maaf, kartu belum berhasil dibuat. Silakan coba sekali lagi.');
+        })
+        .then(function () { busy = false; });
+    });
+
+    function openPreview() {
+      if (!lastCanvas) return;
+      $('previewImg').src = lastCanvas.toDataURL('image/png');
+      $('preview').hidden = false;
+      document.body.classList.add('is-locked');
+    }
+    function closePreview() {
+      $('preview').hidden = true;
+      document.body.classList.remove('is-locked');
+    }
+    $('fallbackLink').addEventListener('click', openPreview);
+    $('previewClose').addEventListener('click', closePreview);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('preview').hidden) closePreview(); });
+  })();
+  </script>
+</body>
+</html>
