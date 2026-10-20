@@ -41,16 +41,14 @@
       --field: #F3F7FB;
       --sans: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       --ease: cubic-bezier(.22, 1, .36, 1);
-      --orb: clamp(104px, 21vh, 176px);
+      --orb: clamp(92px, calc(var(--H) * .2), 150px);
+      --H: 600px;   /* tinggi panggung: maks 600px, menyesuaikan area LMS (diatur JS) */
     }
 
-    html, body { overscroll-behavior: none; }
     html { -webkit-text-size-adjust: 100%; background: var(--sky-0); }
 
     body {
       margin: 0;
-      min-height: 100vh;
-      min-height: 100dvh;
       font-family: var(--sans);
       color: var(--ink);
       line-height: 1.6;
@@ -59,7 +57,19 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
-    body.is-locked { overflow: hidden; }
+    /* Panggung: semua isi berada di sini, tinggi maks 600px */
+    .stage { position: relative; width: 100%; height: var(--H); overflow: hidden; background: var(--sky-0); isolation: isolate; }
+    .scroller {
+      position: absolute; inset: 0; z-index: 1;
+      overflow-x: hidden; overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y pinch-zoom;          /* gulir 1 jari selalu aktif */
+      overscroll-behavior-y: auto;             /* di ujung, gulir diteruskan ke halaman LMS */
+      scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent;
+    }
+    .scroller::-webkit-scrollbar { width: 5px; }
+    .scroller::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 4px; }
+    .scroller.is-locked { overflow: hidden; }
     ::selection { background: rgba(34, 199, 212, .35); color: #fff; }
 
     .sr-only {
@@ -72,7 +82,7 @@
     /* ==========================================================
        LANSKAP MALAM (statis & ringan — tanpa blur berat)
        ========================================================== */
-    .scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
     .scene__sky {
       position: absolute; inset: 0;
       background:
@@ -87,17 +97,18 @@
     @keyframes twinkle { from { opacity: .35; } to { opacity: 1; } }
 
     .moon {
-      position: absolute; top: 12vh; right: 11vw; width: 44px; height: 44px; border-radius: 50%;
+      position: absolute; top: calc(var(--H) * .11); right: 7vw; width: 38px; height: 38px; border-radius: 50%;
       background: radial-gradient(circle at 38% 36%, #FFFEF6 0%, #F2ECCF 62%, #DCD3AE 100%);
       box-shadow: 0 0 30px rgba(255, 246, 210, .45), 0 0 90px rgba(255, 246, 210, .18);
     }
     .moon::before, .moon::after { content: ""; position: absolute; border-radius: 50%; background: rgba(200, 190, 150, .35); }
-    .moon::before { width: 9px; height: 9px; top: 12px; left: 22px; }
-    .moon::after { width: 6px; height: 6px; top: 25px; left: 12px; }
+    .moon::before { width: 8px; height: 8px; top: 10px; left: 19px; }
+    .moon::after { width: 5px; height: 5px; top: 22px; left: 10px; }
+    @media (min-width: 720px) { .moon { top: calc(var(--H) * .13); right: 11vw; width: 46px; height: 46px; } }
 
     .cloud { position: absolute; width: 120px; opacity: .14; animation: cloud 140s linear infinite; }
-    .cloud--1 { top: 18vh; left: -140px; }
-    .cloud--2 { top: 30vh; left: -140px; width: 90px; opacity: .1; animation-duration: 190s; animation-delay: -80s; }
+    .cloud--1 { top: calc(var(--H) * .18); left: -140px; }
+    .cloud--2 { top: calc(var(--H) * .3); left: -140px; width: 90px; opacity: .1; animation-duration: 190s; animation-delay: -80s; }
     @keyframes cloud { to { transform: translateX(calc(100vw + 300px)); } }
 
     .shoot {
@@ -109,9 +120,9 @@
       content: ""; position: absolute; right: -2px; top: -2px; width: 5px; height: 5px; border-radius: 50%;
       background: #fff; box-shadow: 0 0 10px 2px rgba(190, 240, 255, .8);
     }
-    .shoot--1 { top: 9vh; left: 8vw; --a: 22deg; animation: shoot 11s linear 3s infinite; }
-    .shoot--2 { top: 6vh; left: 78vw; --a: 158deg; animation: shoot 16s linear 9s infinite; }
-    .shoot--3 { top: 20vh; left: 40vw; --a: 30deg; animation: shoot 21s linear 15s infinite; }
+    .shoot--1 { top: calc(var(--H) * .09); left: 8vw; --a: 22deg; animation: shoot 11s linear 3s infinite; }
+    .shoot--2 { top: calc(var(--H) * .06); left: 78vw; --a: 158deg; animation: shoot 16s linear 9s infinite; }
+    .shoot--3 { top: calc(var(--H) * .2); left: 40vw; --a: 30deg; animation: shoot 21s linear 15s infinite; }
     @keyframes shoot {
       0%   { opacity: 0; transform: rotate(var(--a)) translateX(0); }
       1.5% { opacity: 1; }
@@ -121,10 +132,10 @@
 
     .land {
       position: absolute; left: 0; right: 0; bottom: 0;
-      width: 100%; height: min(58vh, 600px); min-height: 280px;
+      width: 100%; height: calc(var(--H) * .56); min-height: 220px;
     }
     .waves {
-      position: absolute; left: 0; right: 0; bottom: 7vh; height: 22vh; min-height: 120px;
+      position: absolute; left: 0; right: 0; bottom: calc(var(--H) * .07); height: calc(var(--H) * .22); min-height: 100px;
       overflow: hidden; opacity: .62;
     }
     .waves svg { width: 200%; height: 100%; display: block; animation: waveMove 46s linear infinite; will-change: transform; }
@@ -146,7 +157,7 @@
        TOP BAR
        ========================================================== */
     .topbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+      position: absolute; top: 0; left: 0; right: 0; z-index: 30;
       display: flex; justify-content: space-between; align-items: center; gap: 10px;
       padding: calc(12px + env(safe-area-inset-top)) 16px 18px;
       background: linear-gradient(180deg, rgba(10, 26, 46, .92) 0%, rgba(10, 26, 46, .6) 60%, rgba(10, 26, 46, 0) 100%);
@@ -241,16 +252,16 @@
     .app { position: relative; z-index: 1; width: 100%; max-width: 680px; margin: 0 auto; padding: 0 16px; }
     @media (min-width: 640px) { .app { padding: 0 28px; } }
     .page.is-entering { animation: pageIn 1.2s var(--ease) both; }
-    @keyframes pageIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }  /* hanya opacity: transform di sini membuat tinggi halaman 'tersisa' di Chromium */
     @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
     /* ---------- HALAMAN 1: Pembuka (satu layar, tanpa gulir) ---------- */
     .intro {
       position: relative;
-      min-height: 100vh; min-height: 100dvh;
+      min-height: var(--H);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center;
-      padding: 64px 0 44px;
+      padding: 58px 0 36px;
     }
     .intro > * { animation: fadeUp 1.4s var(--ease) both; }
     .intro > *:nth-child(2) { animation-delay: .15s; }
@@ -288,15 +299,14 @@
     }
     .orb__label.is-fading { opacity: 0; }
 
-    .intro__title { margin: 16px 0 10px; font-size: clamp(26px, 7vw, 38px); line-height: 1.2; color: #fff; }
+    .intro__title { margin: 16px 0 10px; font-size: clamp(26px, 7vw, 38px); line-height: 1.2; color: #fff; text-shadow: 0 2px 18px rgba(5, 18, 32, .55); }
     .intro__title span { display: block; font-weight: 300; }
     .intro__title strong { font-weight: 600; }
-    .intro__sub { margin: 0 auto 24px; max-width: 400px; font-size: 14.5px; font-weight: 300; line-height: 1.7; color: var(--ink-soft); }
+    .intro__sub { margin: 0 auto 24px; max-width: 400px; font-size: 14.5px; font-weight: 300; line-height: 1.7; color: #DCE8F2; text-shadow: 0 1px 12px rgba(5, 18, 32, .8); }
     .intro__note { margin: 14px 0 0; font-size: 11.5px; color: var(--muted); }
     .intro__copy { position: absolute; left: 0; right: 0; bottom: calc(12px + env(safe-area-inset-bottom)); font-size: 10.5px; letter-spacing: .05em; color: rgba(201, 216, 230, .55); animation: none !important; }
 
-    @media (max-height: 620px) {
-      .intro { padding: 58px 0 34px; }
+    @media all {
       .orb__label { margin-top: 12px; }
       .intro__title { margin: 10px 0 8px; }
       .intro__sub { margin-bottom: 18px; font-size: 13.5px; }
@@ -305,9 +315,9 @@
 
     /* ---------- HALAMAN 2: Renungan & Ruang Menulis ---------- */
     .hero {
-      min-height: 74vh; min-height: 74dvh;
+      min-height: calc(var(--H) * .82);
       display: flex; flex-direction: column; justify-content: center; align-items: center;
-      text-align: center; padding: 88px 0 24px;
+      text-align: center; padding: 70px 0 20px;
     }
     .hero__text {
       margin: 22px auto 0; max-width: 600px;
@@ -368,11 +378,11 @@
       -webkit-appearance: none; appearance: none;
     }
     .field textarea::placeholder { color: #A8B6C6; letter-spacing: .04em; }
-    .field__foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 16px 12px; }
-    .field__msg { margin: 0; font-size: 12.5px; font-style: italic; color: #159FAB; transition: opacity .35s; }
+    .field__foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 0 16px 12px; }
+    .field__msg { flex: 1 1 210px; margin: 0; font-size: 12.5px; font-style: italic; color: #159FAB; transition: opacity .35s; }
     .field__msg.is-changing { opacity: 0; }
     .field__msg.is-alert { color: #C27A2C; font-style: normal; font-weight: 500; }
-    .field__meta { flex-shrink: 0; font-size: 11.5px; color: var(--card-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .field__meta { flex-shrink: 0; margin-left: auto; font-size: 11.5px; color: var(--card-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
     .field__meta.is-near { color: #C27A2C; }
 
     .wcard__note {
@@ -393,7 +403,7 @@
     .wcard__cta:active { filter: brightness(.96); }
     .wcard__cta svg { width: 18px; height: 18px; }
 
-    .copyright { position: relative; z-index: 1; padding: 6px 16px calc(22px + env(safe-area-inset-bottom)); text-align: center; font-size: 11px; letter-spacing: .05em; color: rgba(201, 216, 230, .6); }
+    .copyright { position: relative; z-index: 1; padding: 6px 16px calc(22px + env(safe-area-inset-bottom)); text-align: center; font-size: 11px; letter-spacing: .05em; color: rgba(214, 228, 240, .75); text-shadow: 0 1px 8px rgba(5, 18, 32, .9); }
 
     /* ---------- HALAMAN 3: Kartu ---------- */
     .result { padding: 84px 0 8px; text-align: center; }
@@ -403,7 +413,7 @@
     .result__title { margin: 12px auto 6px; font-size: clamp(22px, 6vw, 30px); font-weight: 600; line-height: 1.3; }
     .result__sub { margin: 0 auto 26px; max-width: 420px; font-size: 14px; font-weight: 300; color: var(--ink-soft); }
     .result__actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 28px 0 10px; }
-    .result__note { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+    .result__note { margin: 2px 0 0; font-size: 12.5px; color: #C9D8E6; text-shadow: 0 1px 8px rgba(5, 18, 32, .9); }
     .link-btn { padding: 6px; border: 0; background: none; cursor: pointer; font: 500 12.5px/1.4 var(--sans); color: var(--cyan-2); text-decoration: underline; text-underline-offset: 3px; }
 
     /* Kartu refleksi malam (layar & PNG) */
@@ -459,8 +469,8 @@
       position: absolute; left: 1.8em; right: 1.8em; bottom: 1.1em; z-index: 3;
       display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: .4em 1em;
     }
-    .card__sign { font-size: .78em; font-style: italic; font-weight: 300; color: #E6F6F8; }
-    .card__copy { font-size: .5em; letter-spacing: .1em; text-transform: uppercase; color: rgba(201, 216, 230, .7); }
+    .card__sign { font-size: .78em; font-style: italic; font-weight: 300; color: #E6F6F8; text-shadow: 0 1px 6px rgba(5, 18, 32, .9); }
+    .card__copy { font-size: .5em; letter-spacing: .1em; text-transform: uppercase; color: rgba(214, 228, 240, .85); text-shadow: 0 1px 6px rgba(5, 18, 32, .9); }
 
     #exportStage { position: fixed; top: 0; left: -20000px; width: 1080px; pointer-events: none; z-index: -1; }
     .card--export {
@@ -482,7 +492,7 @@
        TIRAI, PRATINJAU, TOAST
        ========================================================== */
     .veil {
-      position: fixed; inset: 0; z-index: 60;
+      position: absolute; inset: 0; z-index: 60;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
       padding: 24px; text-align: center;
       background: radial-gradient(ellipse at 50% 45%, rgba(63, 196, 208, .25) 0%, rgba(63, 196, 208, 0) 60%), linear-gradient(180deg, #0A1A2E 0%, #11344F 100%);
@@ -497,15 +507,15 @@
     .veil.is-on .veil__small { animation: fadeUp 1.2s var(--ease) .45s both; }
 
     .preview {
-      position: fixed; inset: 0; z-index: 70;
+      position: absolute; inset: 0; z-index: 70;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
       padding: 20px; text-align: center; background: rgba(8, 20, 36, .95);
     }
-    .preview img { max-width: min(92vw, 440px); max-height: 70vh; border-radius: 12px; -webkit-touch-callout: default; }
+    .preview img { max-width: min(92vw, 440px); max-height: 72%; border-radius: 12px; -webkit-touch-callout: default; }
     .preview p { margin: 0; max-width: 340px; font-size: 13.5px; color: var(--ink-soft); }
 
     .toast {
-      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 80;
+      position: absolute; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 80;
       max-width: calc(100% - 32px); padding: 11px 20px; border-radius: 999px;
       background: #fff; color: var(--card-ink); box-shadow: 0 16px 34px -14px rgba(0, 0, 0, .6);
       font-size: 13px; font-weight: 500; text-align: center;
@@ -523,6 +533,7 @@
 </head>
 
 <body>
+<div class="stage" id="stage">
 
   <!-- ===================== LANSKAP MALAM ===================== -->
   <div class="scene" aria-hidden="true">
@@ -587,6 +598,8 @@
     </button>
   </div>
 
+  <!-- Area gulir: digulir dengan satu jari di dalam panggung -->
+  <div class="scroller" id="scroller">
   <main id="app" class="app">
 
     <!-- ===================== HALAMAN 1: Pembuka ===================== -->
@@ -611,7 +624,6 @@
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
         Mulai Refleksi
       </button>
-      <p class="intro__note">Musik akan diputar otomatis · dapat dimatikan di pojok kanan atas</p>
 
       <p class="intro__copy">© Education and Training Departement 2026</p>
     </section>
@@ -690,11 +702,8 @@
   </main>
 
   <footer class="copyright" id="footer" hidden>© Education and Training Departement 2026</footer>
-
-  <!-- Panggung ekspor PNG (di luar layar) -->
-  <div id="exportStage" aria-hidden="true">
-    <div class="card card--export" id="exportCard"></div>
   </div>
+
 
   <!-- Tirai transisi -->
   <div class="veil" id="veil" aria-live="polite">
@@ -716,6 +725,12 @@
   </div>
 
   <div class="toast" id="toast" role="status"></div>
+</div>
+
+  <!-- Panggung ekspor PNG (di luar layar) -->
+  <div id="exportStage" aria-hidden="true">
+    <div class="card card--export" id="exportCard"></div>
+  </div>
 
   <script>
   (function () {
@@ -724,6 +739,18 @@
     var $ = function (id) { return document.getElementById(id); };
     var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var SVGNS = 'http://www.w3.org/2000/svg';
+
+    /* Tinggi panggung: maks 600px; bila area LMS lebih pendek, ikut menyesuaikan */
+    var scroller = $('scroller'), stageEl = $('stage');
+    function fitStage() {
+      var a = document.activeElement;
+      if (a && a.tagName === 'TEXTAREA') return;          // keyboard HP sedang terbuka — jangan ubah ukuran
+      var h = window.innerHeight || 600;
+      var H = h >= 380 ? Math.min(h, 600) : 600;           // iframe belum berukuran wajar → pakai 600px
+      document.documentElement.style.setProperty('--H', H + 'px');
+    }
+    fitStage();
+    window.addEventListener('resize', fitStage);
 
     function seeded(seed) {
       return function () { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
@@ -926,6 +953,12 @@
     /* ==========================================================
        2. ILUSTRASI — lencana lotus, pepohonan, gelombang, bintang
        ========================================================== */
+    // Setiap salinan memakai ID unik — gradien/clip yang dirujuk dari bagian tersembunyi tidak dirender browser
+    var badgeN = 0;
+    function badgeSVG() {
+      var u = 'b' + (++badgeN);
+      return BADGE_SVG.replace(/bg(Ring|Sky|Petal|Clip)/g, u + '$1');
+    }
     var BADGE_SVG =
       '<svg class="badge" viewBox="0 0 120 120" aria-hidden="true">' +
         '<defs>' +
@@ -954,7 +987,7 @@
           '</g>' +
         '</g>' +
       '</svg>';
-    Array.prototype.forEach.call(document.querySelectorAll('[data-badge]'), function (el) { el.innerHTML = BADGE_SVG; });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-badge]'), function (el) { el.innerHTML = badgeSVG(); });
 
     // Pohon pinus sebagai path (dipakai untuk latar & kartu PNG)
     var PINE = [[20,0],[30,22],[25,22],[34,44],[28,44],[38,70],[30,70],[40,88],[0,88],[10,70],[2,70],[12,44],[6,44],[15,22],[10,22]];
@@ -1010,7 +1043,7 @@
 
     // Bintang (3 lapisan box-shadow — sangat ringan)
     function buildStars() {
-      var W = window.innerWidth, H = window.innerHeight, r = seeded(4242);
+      var W = stageEl.clientWidth || window.innerWidth, H = stageEl.clientHeight || 600, r = seeded(4242);
       [[$('stars1'), 110], [$('stars2'), 55], [$('stars3'), 22]].forEach(function (pair) {
         var s = [], n = Math.round(pair[1] * Math.min(1.6, Math.max(.6, W * H / 700000)));
         for (var i = 0; i < n; i++) {
@@ -1030,7 +1063,7 @@
         var f = document.createElement('span');
         f.className = 'firefly';
         var size = 5 + r() * 7;
-        f.style.cssText = 'left:' + (r() * 96).toFixed(1) + '%;bottom:' + (6 + r() * 40).toFixed(1) + 'vh;width:' + size.toFixed(1) + 'px;height:' + size.toFixed(1) + 'px;' +
+        f.style.cssText = 'left:' + (r() * 96).toFixed(1) + '%;bottom:' + (6 + r() * 40).toFixed(1) + '%;width:' + size.toFixed(1) + 'px;height:' + size.toFixed(1) + 'px;' +
           '--c:' + cols[i % 3] + ';--d:' + (8 + r() * 8).toFixed(1) + 's;--dl:' + (-r() * 8).toFixed(1) + 's;--x:' + (r() * 60 - 30).toFixed(0) + 'px;--y:' + (-20 - r() * 50).toFixed(0) + 'px';
         host.appendChild(f);
       }
@@ -1068,15 +1101,20 @@
       $('veilSmall').textContent = small || '';
       $('veilSmall').hidden = !small;
       v.classList.add('is-on');
-      document.body.classList.add('is-locked');
+      scroller.classList.add('is-locked');
       setTimeout(function () {
         if (middle) middle();
-        setTimeout(function () { v.classList.remove('is-on'); document.body.classList.remove('is-locked'); }, 120);
+        setTimeout(function () { v.classList.remove('is-on'); scroller.classList.remove('is-locked'); }, 120);
       }, reducedMotion ? 500 : hold);
     }
 
-    function jumpTop() { try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (e) { window.scrollTo(0, 0); } }
-    function smoothTo(el, block) { el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: block || 'start' }); }
+    function jumpTop() { scroller.scrollTop = 0; }
+    // Gulir hanya di dalam panggung (scrollIntoView bisa ikut menggeser halaman LMS)
+    function smoothTo(el) {
+      var top = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 56;
+      try { scroller.scrollTo({ top: Math.max(0, top), behavior: reducedMotion ? 'auto' : 'smooth' }); }
+      catch (e) { scroller.scrollTop = Math.max(0, top); }
+    }
 
     /* ==========================================================
        4. NAVIGASI & RIWAYAT (tombol back tidak langsung ke awal)
@@ -1272,28 +1310,29 @@
           '<linearGradient id="clLake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48BFCD"/><stop offset="1" stop-color="#1B6B82"/></linearGradient>' +
           '<linearGradient id="clWave" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6FE6EC"/><stop offset=".5" stop-color="#9C8CFF"/><stop offset="1" stop-color="#6FE6EC"/></linearGradient>' +
         '</defs>' +
-        wavePaths(1440, 46, 9, 12, { grad: 'clWave', step: 30, spread: 1.3, sw: 1 }).replace(/<path /g, '<path transform="scale(.4167 1)" ') +
+        wavePaths(1440, 50, 9, 12, { grad: 'clWave', step: 30, spread: 1.3, sw: .9 }).replace(/<path /g, '<path transform="scale(.4167 1)" ') +
         '<path d="M0 110 L60 82 L120 98 L190 60 L260 100 L330 72 L400 104 L470 64 L540 96 L600 78 L600 200 L0 200Z" fill="url(#clFar)" opacity=".9"/>' +
         '<path d="M0 138 L70 110 L140 132 L220 98 L300 136 L380 112 L460 140 L530 108 L600 128 L600 200 L0 200Z" fill="#174561"/>' +
         green +
         '<path d="M0 156 Q150 148 300 152 T600 154 L600 184 L0 184Z" fill="url(#clLake)"/>' +
-        '<path d="M250 166 H290 M318 172 H350" stroke="#B5F5F6" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>' +
         '<path d="M0 178 Q150 170 300 176 T600 174 L600 200 L0 200Z" fill="#0B2235"/>' +
         trees +
       '</svg>';
     }
+    var landN = 0;
+    function cardLand() { var u = 'L' + (++landN); return CARD_LAND.replace(/cl(Far|Lake|Wave)/g, u + '$1'); }
     var CARD_LAND = cardLandSVG();
 
     function cardHTML() {
       return '<div class="card__stars" aria-hidden="true"></div>' +
         '<div class="card__top"><span class="card__label">Catatan Refleksi</span><span class="card__date"></span></div>' +
         '<div class="card__body-flex">' +
-          '<div class="card__badge">' + BADGE_SVG + '</div>' +
+          '<div class="card__badge">' + badgeSVG() + '</div>' +
           '<p class="card__question">Jika hari ini anggota tim saya bercerita tentang pengalaman bekerja bersama saya, mungkin inilah yang akan mereka ceritakan:</p>' +
           '<div class="card__panel"><span class="card__qmark" aria-hidden="true">“</span><div class="card__text"></div></div>' +
           '<p class="card__closing">Karena CINTA bukan hanya untuk dipahami.<br>CINTA harus dirasakan.</p>' +
         '</div>' +
-        '<div class="card__land">' + CARD_LAND +
+        '<div class="card__land">' + cardLand() +
           '<div class="card__foot"><span class="card__sign">— pengingat untuk diri saya sendiri</span><span class="card__copy">© Education and Training Departement 2026</span></div>' +
         '</div>';
     }
@@ -1432,9 +1471,9 @@
     function openPreview() {
       if (!lastCanvas) return;
       $('previewImg').src = lastCanvas.toDataURL('image/png');
-      $('preview').hidden = false; document.body.classList.add('is-locked');
+      $('preview').hidden = false; scroller.classList.add('is-locked');
     }
-    function closePreview() { $('preview').hidden = true; document.body.classList.remove('is-locked'); }
+    function closePreview() { $('preview').hidden = true; scroller.classList.remove('is-locked'); }
     $('fallbackLink').addEventListener('click', openPreview);
     $('previewClose').addEventListener('click', closePreview);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('preview').hidden) closePreview(); });
